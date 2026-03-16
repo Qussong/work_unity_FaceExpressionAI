@@ -1,0 +1,7 @@
+﻿<Solution>
+  <Project Path="Gaskellgames.csproj" />
+  <Project Path="BetterHierarchy.csproj" />
+  <Project Path="Gaskellgames.FolderSystem.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="BetterHierarchyDemoScripts.csproj" />
+</Solution>
