@@ -2,40 +2,41 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// 유한 상태 기계(FSM) 핵심 컴포넌트
-/// 상태를 Dictionary로 관리하고 전환 시 Exit → Enter 순서를 보장한다
-/// NavigationManager가 소유하며, GoTo<T>()를 통해 외부에서 전환을 요청한다
-/// </summary>
+namespace PagingTemplate.FSM
+{
+
 public class StateMachine : MonoBehaviour
 {
-    /// <summary>현재 활성화된 상태</summary>
     private IState _currentState;
-
-    /// <summary>타입을 키로 상태 인스턴스를 저장하는 딕셔너리</summary>
     private Dictionary<Type, IState> _states = new Dictionary<Type, IState>();
+    private HashSet<Type> _initializedStates = new HashSet<Type>(); // Init 호출 여부 추적
+    public event Action<IState, IState> OnStateChanged; // 상태 전환 이벤트 (oldState, newState)
 
-    /// <summary>상태 전환 시 발생하는 이벤트 (이전 상태, 새 상태)</summary>
-    public event Action<IState, IState> OnStateChanged;
-
-    /// <summary>현재 상태 읽기 전용 프로퍼티</summary>
     public IState CurrentState => _currentState;
 
-    #region Unity 이벤트
+    #region 유니티 이벤트 함수
 
     private void Update()
     {
-        // 현재 상태의 Update를 매 프레임 호출
+        // 현재 상태의 Update 호출
         _currentState?.Update();
+    }
+
+    private void OnDestroy()
+    {
+        // 모든 상태의 이벤트 구독 해제
+        foreach (var state in _states.Values)
+        {
+            state.Dispose();
+        }
     }
 
     #endregion
 
-    #region 외부 호출 메서드
+    #region 외부 호출 함수
 
     /// <summary>
-    /// 상태를 딕셔너리에 등록한다
-    /// 같은 타입은 중복 등록하지 않는다
+    /// 상태 등록
     /// </summary>
     public void AddState<T>(T state) where T : IState
     {
@@ -47,37 +48,55 @@ public class StateMachine : MonoBehaviour
     }
 
     /// <summary>
-    /// 지정한 타입의 상태로 전환한다
-    /// 현재 상태와 같으면 무시, 없는 타입이면 에러 로그 출력
+    /// 상태 전환 (비제네릭)
     /// </summary>
-    public void ChangeState<T>() where T : IState
+    public void ChangeState(Type type)
     {
-        var type = typeof(T);
-
+        // Dictionary에서 해당 타입의 State 검색
         if (!_states.TryGetValue(type, out IState newState))
         {
-            Debug.LogError($"[StateMachine] 등록되지 않은 상태: {type.Name}");
+            Debug.LogError($"[StateMachine] State not found: {type.Name}");
             return;
         }
 
-        // 이미 같은 상태면 전환하지 않음
+        // 같은 상태면 무시
         if (_currentState == newState) return;
 
         var oldState = _currentState;
 
-        // 이전 상태 종료 → 새 상태 진입
+        // 상태 전환 수행 : Exit → Init(최초 1회) → Enter
         _currentState?.Exit();
         _currentState = newState;
+
+        // 최초 진입 시 Init 호출
+        if (_initializedStates.Add(type))
+        {
+            _currentState.Init();
+        }
+
         _currentState.Enter();
 
-        // 전환 이벤트 발행
+        // 외부에 상태 변경 알림
         OnStateChanged?.Invoke(oldState, _currentState);
 
         Debug.Log($"[StateMachine] {oldState?.GetType().Name ?? "None"} → {_currentState.GetType().Name}");
     }
 
     /// <summary>
-    /// 등록된 상태 인스턴스를 타입으로 조회한다
+    /// 상태 전환 (제네릭)
+    /// </summary>
+    public void ChangeState<T>() where T : IState => ChangeState(typeof(T));
+
+    /// <summary>
+    /// 모든 상태의 Init 추적 초기화 (콘텐츠 완전 재시작 시 사용)
+    /// </summary>
+    public void ResetAllInitStates()
+    {
+        _initializedStates.Clear();
+    }
+
+    /// <summary>
+    /// 특정 타입 상태 가져오기
     /// </summary>
     public T GetState<T>() where T : IState
     {
@@ -90,7 +109,7 @@ public class StateMachine : MonoBehaviour
     }
 
     /// <summary>
-    /// 현재 상태가 지정한 타입인지 확인한다
+    /// 현재 상태가 특정 타입인지 확인
     /// </summary>
     public bool IsCurrentState<T>() where T : IState
     {
@@ -98,4 +117,7 @@ public class StateMachine : MonoBehaviour
     }
 
     #endregion
+
 }
+
+} // namespace PagingTemplate.FSM

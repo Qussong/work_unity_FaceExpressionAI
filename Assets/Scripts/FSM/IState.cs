@@ -1,15 +1,13 @@
-/// <summary>
-/// 모든 상태가 구현해야 하는 인터페이스
-/// FSM의 각 상태는 Enter / Update / Exit 세 단계로 동작한다
-/// </summary>
+namespace PagingTemplate.FSM
+{
+
 public interface IState
 {
-    /// <summary>상태 진입 시 한 번 호출</summary>
-    void Enter();
-
-    /// <summary>상태가 활성화된 매 프레임 호출</summary>
+    void Init();    // 최초 1회 초기화 (콘텐츠 시작 시)
+    void Enter();   // 상태 진입 시 매번 호출 (반복 플레이 시 리셋 등)
     void Update();
-
-    /// <summary>상태 종료 시 한 번 호출</summary>
     void Exit();
+    void Dispose(); // 이벤트 해제 (프로그램 종료 시)
 }
+
+} // namespace PagingTemplate.FSM

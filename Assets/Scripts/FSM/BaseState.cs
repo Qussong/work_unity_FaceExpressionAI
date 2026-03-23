@@ -1,34 +1,85 @@
 using UnityEngine;
+using PagingTemplate.View;
+using PagingTemplate.Model;
+using PagingTemplate.Manager;
 
-/// <summary>
-/// 모든 상태의 제네릭 베이스 클래스
-/// TState : 자기 자신 타입 (로그 출력에 사용)
-/// TView  : 이 상태에 대응하는 View 타입 (Enter/Exit 시 자동 Show/Hide)
-/// </summary>
+namespace PagingTemplate.FSM
+{
+
 public class BaseState<TState, TView> : IState where TView : BaseView
 {
-    /// <summary>이 상태에 연결된 View 참조</summary>
     protected TView _view;
+    protected PageData _data;       // 이 State(View)에 대응하는 데이터 묶음
 
-    public BaseState(TView view)
+    public BaseState(TView view, PageData data)
     {
         _view = view;
+        _data = data;
     }
 
-    /// <summary>상태 진입 시 View를 표시</summary>
+    public virtual void Init()
+    {
+        Debug.Log($"[{typeof(TState).Name}] Init");
+
+        // 이벤트 구독 (Init은 최초 1회만 호출됨)
+        _view.OnPrevClicked += OnPrevClicked;
+        _view.OnHomeClicked += OnHomeClicked;
+        _view.OnNextClicked += OnNextClicked;
+    }
+
     public virtual void Enter()
     {
         Debug.Log($"[{typeof(TState).Name}] Enter");
+        BindView();                // Presenter가 View에 데이터 세팅
         _view.Show();
     }
 
-    /// <summary>상태 종료 시 View를 숨김</summary>
     public virtual void Exit()
     {
         Debug.Log($"[{typeof(TState).Name}] Exit");
         _view.Hide();
     }
 
-    /// <summary>매 프레임 호출 - 자식 클래스에서 override하여 로직 추가</summary>
-    public virtual void Update() { }
+    /// <summary>
+    /// 이벤트 구독 해제 (프로그램 종료 시 호출)
+    /// </summary>
+    public virtual void Dispose()
+    {
+        _view.OnPrevClicked -= OnPrevClicked;
+        _view.OnHomeClicked -= OnHomeClicked;
+        _view.OnNextClicked -= OnNextClicked;
+    }
+
+    public virtual void Update()
+    {
+        //
+    }
+
+    /// <summary>
+    /// Presenter가 Model 데이터를 View에 세팅 (서브클래스에서 override)
+    /// 예: _view.SetTitle(_data.title); _view.SetBackground(_data.sprite);
+    /// </summary>
+    protected virtual void BindView() { }
+
+    /// <summary>
+    /// 상태 전환 편의 메서드
+    /// </summary>
+    protected void GoTo<T>() where T : IState => NavigationManager.Instance.GoTo<T>();
+
+    /// <summary>
+    /// 이전 버튼 클릭 시 호출 (서브클래스에서 override)
+    /// </summary>
+    protected virtual void OnPrevClicked() { }
+
+    /// <summary>
+    /// 홈 버튼 클릭 시 호출 (서브클래스에서 override)
+    /// </summary>
+    protected virtual void OnHomeClicked() { }
+
+    /// <summary>
+    /// 다음 버튼 클릭 시 호출 (서브클래스에서 override)
+    /// </summary>
+    protected virtual void OnNextClicked() { }
 }
+
+} // namespace PagingTemplate.FSM
