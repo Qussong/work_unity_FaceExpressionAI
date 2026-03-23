@@ -1,0 +1,5 @@
+{
+  "views": [
+    { "viewType": "PagingTemplate.View.HomeView",   "csvFiles": ["HomeData.csv"] }
+  ]
+}
