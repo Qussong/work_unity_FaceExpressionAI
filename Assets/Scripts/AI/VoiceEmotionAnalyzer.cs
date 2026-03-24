@@ -49,6 +49,7 @@ public class VoiceEmotionAnalyzer : MonoBehaviour
     public event Action<VoiceProcessResponse> _OnProcessComplete;   // API 처리 성공 시
     public event Action<string> _OnProcessFailed;                   // API 처리 실패 시 (STT/OpenAI/TTS 오류)
     public event Action _OnAudioPlayComplete;                       // TTS 재생 완료 시
+    public event Action _OnReset;                                   // 초기 상태로 복귀 시
 
     private AudioClip _recordingClip;
     private bool _isRecording = false;
@@ -113,6 +114,7 @@ public class VoiceEmotionAnalyzer : MonoBehaviour
                 Debug.LogError("[VoiceEmotionAnalyzer] 마이크 응답 타임아웃");
                 Microphone.End(_selectedMicrophone);
                 _OnRecordingFailed?.Invoke("마이크가 응답하지 않습니다");
+                _OnReset?.Invoke();
                 return;
             }
         }
@@ -147,6 +149,7 @@ public class VoiceEmotionAnalyzer : MonoBehaviour
         {
             Debug.LogWarning("[VoiceEmotionAnalyzer] 녹음된 데이터가 없습니다");
             _OnRecordingFailed?.Invoke("녹음된 데이터가 없습니다");
+            _OnReset?.Invoke();
             return;
         }
 
@@ -295,6 +298,7 @@ public class VoiceEmotionAnalyzer : MonoBehaviour
         {
             string errorMsg = response?.error ?? "알 수 없는 오류";
             _OnProcessFailed?.Invoke(errorMsg);
+            _OnReset?.Invoke();
             yield break;
         }
 
@@ -373,11 +377,13 @@ public class VoiceEmotionAnalyzer : MonoBehaviour
                 yield return new WaitForSeconds(clip.length);
 
                 _OnAudioPlayComplete?.Invoke();
+                _OnReset?.Invoke();
             }
             else
             {
                 Debug.LogError($"[VoiceEmotionAnalyzer] 오디오 로드 실패: {www.error}");
                 _OnAudioPlayComplete?.Invoke();
+                _OnReset?.Invoke();
             }
         }
     }

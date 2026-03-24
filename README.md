@@ -110,13 +110,13 @@ Assets/
 **이벤트 흐름:**
 
 ```
-_OnRecordingStarted           ← 녹음 시작
-_OnRecordingStopped           ← 녹음 중지
-  ├─ _OnRecordingFailed       ← 녹음 실패 (빈 데이터, 마이크 무응답)
+_OnRecordingStarted              ← 녹음 시작
+_OnRecordingStopped              ← 녹음 중지
+  ├─ _OnRecordingFailed          ← 녹음 실패 → _OnReset
   └─ API 호출
-       ├─ _OnProcessFailed    ← API 실패 (STT/OpenAI/TTS 오류)
-       └─ _OnProcessComplete  ← API 성공 (결과 데이터 포함)
-            └─ _OnAudioPlayComplete  ← TTS 재생 완료
+       ├─ _OnProcessFailed       ← API 실패 → _OnReset
+       └─ _OnProcessComplete     ← API 성공 (결과 데이터 포함)
+            └─ _OnAudioPlayComplete  ← TTS 재생 완료 → _OnReset
 ```
 
 **감정 코드 매핑:**
@@ -135,6 +135,7 @@ _OnRecordingStopped           ← 녹음 중지
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-03-24 | _OnReset 이벤트 추가 — 실패/재생 완료 시 초기 상태 복귀 통합 이벤트 |
 | 2026-03-23 | 이벤트 구조 개선 — _OnProcessFailed/_OnRecordingFailed 분리, 마이크 타임아웃 추가 |
 | 2026-03-23 | Python 서버 제거 → C# 단일 구조 전환 (AIService에서 외부 API 직접 호출, 30초 타임아웃 적용) |
 | 2026-03-23 | 감정 코드 0(중립) 추가, 놀람 TTS 감정을 기쁨으로 변경 |
