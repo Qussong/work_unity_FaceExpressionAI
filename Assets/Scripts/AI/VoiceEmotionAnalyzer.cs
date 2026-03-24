@@ -302,6 +302,14 @@ public class VoiceEmotionAnalyzer : MonoBehaviour
             yield break;
         }
 
+        // TTS 실패 시 전체 실패 처리
+        if (!string.IsNullOrEmpty(response.tts_error))
+        {
+            _OnProcessFailed?.Invoke(response.tts_error);
+            _OnReset?.Invoke();
+            yield break;
+        }
+
         // 처리 성공
         _OnProcessComplete?.Invoke(response);
 

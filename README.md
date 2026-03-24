@@ -11,6 +11,7 @@
 | 엔진 | Unity (C#) |
 | 설계 패턴 | PagingTemplate (FSM + MVP + 싱글톤) |
 | 외부 API | Naver Clova STT/TTS, OpenAI GPT-4o-mini |
+| 하드웨어 | 시리얼 통신 버튼 (SerialManager) |
 
 ---
 
@@ -22,11 +23,21 @@
 
 ```
 [HomeState] ←─ 단일 화면에서 모든 흐름 처리
-    │  녹음 버튼 클릭
-    │  → 음성 녹음 → API 직접 호출 → 결과 표시 + 캐릭터 애니메이션
-    │  → 대기 상태로 자동 복귀
+    │  시리얼 버튼 누름 (data[1]==1)
+    │  → 마이크 이펙트 + 음성 녹음
+    │  버튼 땜 (data[1]==0)
+    │  → 로딩 애니메이션 → API 호출 → 캐릭터 애니메이션 + TTS 재생
+    │  → 대기 상태로 자동 복귀 (_OnReset)
     └── (60초 무입력 시 IdleManager가 홈으로 리셋)
 ```
+
+| UI 요소 | 역할 |
+|---------|------|
+| TxtMsgTop | 예시 질문 표시 (랜덤 5종) |
+| TxtMsgBottom | 상태 안내 메시지 |
+| MicEffectAnimator | 녹음 중 마이크 이펙트 애니메이션 |
+| LoadingAnimator | API 처리 중 로딩 회전 애니메이션 |
+| CharacterAnimator | 감정별 캐릭터 반응 애니메이션 |
 
 ---
 
@@ -34,11 +45,13 @@
 
 | 기능 | 설명 |
 |------|------|
+| 시리얼 버튼 입력 | SerialManager로 하드웨어 버튼 수신 → 녹음 시작/종료 제어 |
 | 음성 녹음 | 마이크 48kHz 모노 캡처, 자동 게인 보정 (목표 0.35, 최대 150배), 1초 타임아웃 |
 | STT | Naver Clova Speech — 한국어 음성→텍스트 변환 (30초 타임아웃) |
 | 감정 분석 | OpenAI GPT-4o-mini — 5종 감정 분류 + 20자 내외 공감 응답 생성 (30초 타임아웃) |
 | TTS | Naver Clova Voice Premium — 감정별 음성 합성, 화자: nara (30초 타임아웃) |
-| 캐릭터 반응 | 감정 코드별 애니메이션 트리거 (tHappy/tSad/tAngry/tSurprised) |
+| 캐릭터 반응 | 감정 코드별 애니메이션 트리거 (tHappy/tSad/tAngry/tSurprised), 실패 시 tRefuse |
+| 랜덤 예시 질문 | 초기/복귀 시 5종 예시 질문 중 랜덤 표시 |
 | 유휴 감지 | 60초 무입력 시 자동 홈 복귀 |
 
 ---
@@ -50,11 +63,11 @@ PagingTemplate 네임스페이스 기반 FSM + MVP + 싱글톤 패턴
 | 레이어 | 역할 | 주요 클래스 |
 |--------|------|------------|
 | **AI** | 외부 API 직접 호출 (STT→감정분석→TTS) + 녹음/재생 | `AIService`, `VoiceEmotionAnalyzer`, `VoiceProcessResponse` |
-| **FSM** | 상태 전환 관리 | `StateMachine`, `IState`, `BaseState<TState, TView>`, `HomeState` |
-| **View** | UI 패널 표시/숨김, 네비게이션 버튼 | `BaseView`, `HomeView` |
+| **FSM** | 상태 전환 관리, 이벤트 구독 및 UI/애니메이션 제어 | `StateMachine`, `IState`, `BaseState<TState, TView>`, `HomeState` |
+| **View** | UI 패널 표시/숨김, Inspector 필드 노출 | `BaseView`, `HomeView` |
 | **Model** | CSV 기반 데이터 로딩 및 View별 매핑 | `DataRepository`, `PageData` |
 | **Manager** | 싱글톤 시스템 관리 | `NavigationManager`, `IdleManager` |
-| **Utility** | 싱글톤 베이스, CSV 파서 | `MonoSingleton<T>`, `CSVParser` |
+| **Utility** | 싱글톤 베이스, CSV 파서, 시리얼 통신 | `MonoSingleton<T>`, `CSVParser`, `SerialManager` |
 
 ---
 
@@ -71,10 +84,10 @@ Assets/
 │   │   ├── BaseState.cs               # 제네릭 상태 베이스 (MVP Presenter)
 │   │   ├── StateMachine.cs            # 상태 등록/전환 엔진
 │   │   └── States/
-│   │       └── HomeState.cs           # 홈 화면 상태
+│   │       └── HomeState.cs           # 홈 화면 상태 (이벤트 바인딩, 시리얼 수신)
 │   ├── View/
 │   │   ├── BaseView.cs                # View 추상 베이스 (Show/Hide/네비 버튼)
-│   │   └── HomeView.cs               # 홈 화면 View
+│   │   └── HomeView.cs               # 홈 화면 View (AI, 애니메이터, UI 필드)
 │   ├── Model/
 │   │   ├── PageData.cs                # View별 key-value 데이터 컨테이너
 │   │   └── DataRepository.cs         # DataConfig.json → CSV → PageData 변환
@@ -83,6 +96,7 @@ Assets/
 │   │   └── IdleManager.cs            # 무입력 타임아웃 감지
 │   └── Util/
 │       ├── MonoSingleton.cs           # 제네릭 싱글톤 베이스
+│       ├── SerialManager.cs           # 시리얼 포트 통신 (하드웨어 버튼 입력)
 │       └── CSVParser.cs              # StreamingAssets CSV 로더
 ├── Scenes/
 │   ├── PagingTemplate.unity           # 메인 씬
@@ -96,26 +110,27 @@ Assets/
 ## 데이터 흐름
 
 ```
-1. 사용자 버튼 클릭
+1. 시리얼 버튼 누름 (data[1]==1)
       ↓
 2. VoiceEmotionAnalyzer.StartRecording()
    마이크 캡처 (48kHz 모노) → 자동 게인 보정 → WAV 16-bit PCM
       ↓
-3. AIService.ProcessVoice() — C#에서 외부 API 직접 호출
+3. 버튼 땜 (data[1]==0) → StopRecordingAndProcess()
+   AIService.ProcessVoice() — C#에서 외부 API 직접 호출
    Clova STT → GPT-4o-mini 감정분석 → Clova TTS
       ↓
-4. VoiceProcessResponse 수신 → UI 업데이트 + 캐릭터 애니메이션 + MP3 재생
+4. VoiceProcessResponse 수신 → 캐릭터 애니메이션 + TTS MP3 재생 → _OnReset
 ```
 
 **이벤트 흐름:**
 
 ```
-_OnRecordingStarted              ← 녹음 시작
-_OnRecordingStopped              ← 녹음 중지
+_OnRecordingStarted              ← 녹음 시작 (UI 안내 표시)
+_OnRecordingStopped              ← 녹음 중지 (로딩 애니메이션 시작)
   ├─ _OnRecordingFailed          ← 녹음 실패 → _OnReset
   └─ API 호출
-       ├─ _OnProcessFailed       ← API 실패 → _OnReset
-       └─ _OnProcessComplete     ← API 성공 (결과 데이터 포함)
+       ├─ _OnProcessFailed       ← API/TTS 실패 → tRefuse 애니메이션 → _OnReset
+       └─ _OnProcessComplete     ← API 성공 → 감정 애니메이션 트리거
             └─ _OnAudioPlayComplete  ← TTS 재생 완료 → _OnReset
 ```
 
@@ -135,6 +150,7 @@ _OnRecordingStopped              ← 녹음 중지
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-03-24 | 시리얼 통신 버튼 입력 연동, 캐릭터/마이크/로딩 애니메이션 제어, TTS 실패 처리 추가 |
 | 2026-03-24 | _OnReset 이벤트 추가 — 실패/재생 완료 시 초기 상태 복귀 통합 이벤트 |
 | 2026-03-23 | 이벤트 구조 개선 — _OnProcessFailed/_OnRecordingFailed 분리, 마이크 타임아웃 추가 |
 | 2026-03-23 | Python 서버 제거 → C# 단일 구조 전환 (AIService에서 외부 API 직접 호출, 30초 타임아웃 적용) |

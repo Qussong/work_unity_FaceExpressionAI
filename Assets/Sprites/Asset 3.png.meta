@@ -1,13 +1,16 @@
 fileFormatVersion: 2
-guid: 643ef049203d60f42afc81c26a064629
+guid: 7a79d047a8f41ca4ebe3ebb11fb73005
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 3304390459394758127
-    second: "\uC18C\uD1B5 \uB9C8\uC774\uD06C \uBE44\uD65C\uC131\uD654_0"
+      213: 8302129328904623997
+    second: Asset 3_0
   - first:
-      213: 924126277261387143
-    second: "\uC18C\uD1B5 \uB9C8\uC774\uD06C \uBE44\uD65C\uC131\uD654_1"
+      213: -5648520295195263990
+    second: Asset 3_1
+  - first:
+      213: -8620834804588372882
+    second: Asset 3_2
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -103,13 +106,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: "\uC18C\uD1B5 \uB9C8\uC774\uD06C \uBE44\uD65C\uC131\uD654_0"
+      name: Asset 3_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 561
-        height: 510
+        width: 26
+        height: 109
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -118,20 +121,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: fe51a6b8d9d8bdd20800000000000000
-      internalID: 3304390459394758127
+      spriteID: d7756b853a6173370800000000000000
+      internalID: 8302129328904623997
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC18C\uD1B5 \uB9C8\uC774\uD06C \uBE44\uD65C\uC131\uD654_1"
+      name: Asset 3_1
       rect:
         serializedVersion: 2
-        x: 109
-        y: 283
-        width: 343
-        height: 666
+        x: 19
+        y: 16
+        width: 23
+        height: 77
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -140,8 +143,30 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 785e4c3f3f723dc00800000000000000
-      internalID: 924126277261387143
+      spriteID: a0c3d4af7bc6c91b0800000000000000
+      internalID: -5648520295195263990
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Asset 3_2
+      rect:
+        serializedVersion: 2
+        x: 40
+        y: 34
+        width: 16
+        height: 41
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e6c9f2d9b64ac5880800000000000000
+      internalID: -8620834804588372882
       vertices: []
       indices: 
       edges: []
@@ -160,8 +185,9 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      "\uC18C\uD1B5 \uB9C8\uC774\uD06C \uBE44\uD65C\uC131\uD654_0": 3304390459394758127
-      "\uC18C\uD1B5 \uB9C8\uC774\uD06C \uBE44\uD65C\uC131\uD654_1": 924126277261387143
+      Asset 3_0: 8302129328904623997
+      Asset 3_1: -5648520295195263990
+      Asset 3_2: -8620834804588372882
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

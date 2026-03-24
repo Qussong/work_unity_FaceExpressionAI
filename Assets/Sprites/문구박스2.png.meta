@@ -1,13 +1,10 @@
 fileFormatVersion: 2
-guid: 7eb4cc3480299744fbf7216417169a02
+guid: 96c81a457d1c66c4e8a3b429c944be87
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 1958749748244794503
-    second: "\uC74C\uC131\uC544\uC774\uCF58(\uBE44\uD65C\uC131)_0"
-  - first:
-      213: 21310867523589814
-    second: "\uC74C\uC131\uC544\uC774\uCF58(\uBE44\uD65C\uC131)_1"
+      213: 63475005587386492
+    second: "\uBB38\uAD6C\uBC15\uC2A42_0"
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -103,13 +100,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: "\uC74C\uC131\uC544\uC774\uCF58(\uBE44\uD65C\uC131)_0"
+      name: "\uBB38\uAD6C\uBC15\uC2A42_0"
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 68
-        height: 95
+        width: 651
+        height: 194
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -118,30 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 78c4404a480ee2b10800000000000000
-      internalID: 1958749748244794503
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: "\uC74C\uC131\uC544\uC774\uCF58(\uBE44\uD65C\uC131)_1"
-      rect:
-        serializedVersion: 2
-        x: 14
-        y: 42
-        width: 40
-        height: 74
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 6b659900f16bb4000800000000000000
-      internalID: 21310867523589814
+      spriteID: c70f6286e2281e000800000000000000
+      internalID: 63475005587386492
       vertices: []
       indices: 
       edges: []
@@ -160,8 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      "\uC74C\uC131\uC544\uC774\uCF58(\uBE44\uD65C\uC131)_0": 1958749748244794503
-      "\uC74C\uC131\uC544\uC774\uCF58(\uBE44\uD65C\uC131)_1": 21310867523589814
+      "\uBB38\uAD6C\uBC15\uC2A42_0": 63475005587386492
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
