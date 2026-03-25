@@ -144,21 +144,44 @@ namespace PagingTemplate.FSM.States
             return $"이런 질문은 어때요?\n\"{_exampleQuestions[index]}\"";
         }
 
+        public override void Update()
+        {
+            base.Update();
+
+            // 스페이스바로도 시리얼 버튼과 동일하게 동작
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                StartRecording();
+            }
+            else if (Input.GetKeyUp(KeyCode.Space))
+            {
+                StopRecordingAndProcess();
+            }
+        }
+
         private void OnSerialReceive(byte[] data)
         {
             if (1 == data[1])
             {
-                // 버튼 누름 (마이크 활성화, 녹음 시작)
-                _view.VoiceEmotionAnalyzer.StartRecording();
-                _view.MicEffectAnimator.SetBool("isRecording", true);
+                StartRecording();
             }
             else if (0 == data[1])
             {
-                // 버튼 땜 (마이크 비활성화, 녹음 종료)
-                _view.MicEffectAnimator.SetBool("isRecording", false);
-                _view.MicEffectCanvasGroup.alpha = 0f;
-                _view.VoiceEmotionAnalyzer.StopRecordingAndProcess();
+                StopRecordingAndProcess();
             }
+        }
+
+        private void StartRecording()
+        {
+            _view.VoiceEmotionAnalyzer.StartRecording();
+            _view.MicEffectAnimator.SetBool("isRecording", true);
+        }
+
+        private void StopRecordingAndProcess()
+        {
+            _view.MicEffectAnimator.SetBool("isRecording", false);
+            _view.MicEffectCanvasGroup.alpha = 0f;
+            _view.VoiceEmotionAnalyzer.StopRecordingAndProcess();
         }
 
         #endregion

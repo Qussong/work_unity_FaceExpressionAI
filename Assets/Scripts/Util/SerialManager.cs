@@ -10,7 +10,7 @@ public class SerialManager : MonoSingleton<SerialManager>
 {
     private readonly object _lock = new object();
     [Header("Serial Settings")]
-    [SerializeField] private string _portName;              // 시리얼 포트 이름
+    private string _portName;              // 시리얼 포트 이름
     [SerializeField] private int _baudRate = 9600;          // 통신 속도 (bps)
 
     [Header("Data Settings")]
@@ -24,6 +24,7 @@ public class SerialManager : MonoSingleton<SerialManager>
     public event Action<Byte[]> SendDataHandler;            // 데이터 송신 시 호출
     public event Action<Byte[]> ReceiveDataHandler;         // 데이터 수신 시 호출
 
+    private bool _useSerial = true;                    // 시리얼 통신 사용 여부
     private SerialPort _serialPort;
     private readonly Queue<Byte[]> _mainThreadQueue = new Queue<Byte[]>();
 
@@ -60,11 +61,32 @@ public class SerialManager : MonoSingleton<SerialManager>
     /// </summary>
     protected override void OnSingletonAwake()
     {
-        ConnectPort();
+        LoadPortFromCSV();
+        if (_useSerial)
+            ConnectPort();
+        else
+            Debug.Log("[SerialManager] 시리얼 통신 비활성화 (bUseSerial=false)");
+    }
+
+    /// <summary>config.csv에서 시리얼 포트 이름을 읽어온다</summary>
+    private void LoadPortFromCSV()
+    {
+        var config = CSVParser.Read("config.csv");
+        if (config.TryGetValue("SerialPort", out var port))
+        {
+            _portName = port;
+            Debug.Log($"[SerialManager] config.csv에서 포트 로드: {_portName}");
+        }
+        if (config.TryGetValue("bUseSerial", out var useSerial))
+        {
+            _useSerial = useSerial.Trim().ToLower() == "true";
+            Debug.Log($"[SerialManager] 시리얼 통신 사용 여부: {_useSerial}");
+        }
     }
 
     private void Start()
     {
+        if (!_useSerial) return;
         StartCoroutine(ListeningSerialPort());
         ReceiveDataHandler += PrintReceiveData;
         SendDataHandler += SendData;

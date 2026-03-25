@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Text;
+using PagingTemplate.Util;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -10,10 +11,9 @@ using UnityEngine.Networking;
 /// </summary>
 public class AIService : MonoBehaviour
 {
-    [Header("API 키 설정")]
-    [SerializeField] private string _openAIApiKey = "";
-    [SerializeField] private string _naverClientId = "";
-    [SerializeField] private string _naverClientSecret = "";
+    private string _openAIApiKey = "";
+    private string _naverClientId = "";
+    private string _naverClientSecret = "";
 
     [Header("설정")]
     [SerializeField] private int _timeoutSeconds = 30;
@@ -50,6 +50,23 @@ public class AIService : MonoBehaviour
     [Serializable] private class OpenAIMessage { public string content; }
     [Serializable] private class EmotionAnalysisResult { public int emotion; public string response; }
     [Serializable] private class ClovaSTTResponse { public string text; }
+
+    private void Awake()
+    {
+        LoadApiKeysFromCSV();
+    }
+
+    /// <summary>StreamingAssets/config.csv에서 API 키를 읽어온다</summary>
+    private void LoadApiKeysFromCSV()
+    {
+        var config = CSVParser.Read("config.csv");
+
+        if (config.TryGetValue("OpenAIApiKey", out var openAI)) _openAIApiKey = openAI;
+        if (config.TryGetValue("NaverClientId", out var naverId)) _naverClientId = naverId;
+        if (config.TryGetValue("NaverClientSecret", out var naverSecret)) _naverClientSecret = naverSecret;
+
+        if (_showDebugLog) Debug.Log("[AIService] config.csv에서 API 키 로드 완료");
+    }
 
     #region 외부 호출 함수
 
