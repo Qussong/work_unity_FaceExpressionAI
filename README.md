@@ -2,7 +2,7 @@
 
 > 인천 학생과학관 체험 프로그램 — 음성으로 대화하면 AI가 감정을 분석하고 캐릭터가 공감 응답을 들려줍니다.
 
-![홈 화면](docs/images/HomeView.png)
+<img src="docs/images/HomeView.png" width="192" alt="홈 화면">
 
 | 항목 | 내용 |
 |------|------|
@@ -21,7 +21,7 @@
 
 | 홈 화면 |
 |---------|
-| ![홈 화면](docs/images/HomeView.png) |
+| <img src="docs/images/HomeView.png" width="192" alt="홈 화면"> |
 
 ```
 [HomeState] ←─ 단일 화면에서 모든 흐름 처리
