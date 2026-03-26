@@ -17,6 +17,14 @@
 
 ---
 
+## 테스트 영상
+
+> 🎬 아래 이미지를 클릭하면 YouTube에서 플레이 테스트 영상을 볼 수 있습니다.
+
+[![▶ 플레이 테스트 영상 보기](https://img.youtube.com/vi/h959soKaR9U/0.jpg)](https://youtube.com/shorts/h959soKaR9U)
+
+---
+
 ## 화면 구성
 
 | 홈 화면 |
