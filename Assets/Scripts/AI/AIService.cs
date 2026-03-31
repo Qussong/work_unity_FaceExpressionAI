@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using PagingTemplate.Util;
 using UnityEngine;
@@ -19,6 +21,10 @@ public class AIService : MonoBehaviour
     [SerializeField] private int _timeoutSeconds = 30;
     [SerializeField] private bool _showDebugLog = true;
 
+    // 기존 대화 기록 (STT 텍스트만 보관 — 중복 판단용)
+    private readonly List<string> _conversationHistory = new();
+    private string _conversationLogPath;
+
     // 감정코드 → Clova TTS 감정 파라미터 매핑 (감정코드, 클로바보이스 감정코드)
     private static readonly System.Collections.Generic.Dictionary<int, int> EMOTION_TO_CLOVA = new()
     {
@@ -29,11 +35,11 @@ public class AIService : MonoBehaviour
         { 4, 2 },  // 놀람 → Clova 기쁨(2) — Clova에 놀람 없어서 높은 톤의 기쁨으로 대체
     };
 
-    private const string SYSTEM_PROMPT =
+    private const string BASE_SYSTEM_PROMPT =
         "당신은 감정 분석 전문가입니다.\n" +
         "사용자의 말을 분석하여 반드시 아래 JSON 형식으로만 응답하세요.\n" +
         "JSON 외에 다른 텍스트는 절대 포함하지 마세요.\n\n" +
-        "{\"emotion\": 감정코드(정수), \"response\": \"짧은 공감 응답\"}\n\n" +
+        "{\"emotion\": 감정코드(정수), \"response\": \"짧은 공감 응답\", \"duplicate\": true/false}\n\n" +
         "감정코드:\n" +
         "1 = 기쁨 (행복, 즐거움, 만족, 설렘 등)\n" +
         "2 = 슬픔 (우울, 외로움, 실망, 후회 등)\n" +
@@ -41,19 +47,21 @@ public class AIService : MonoBehaviour
         "4 = 놀람 (충격, 당황, 의외, 신기함 등)\n\n" +
         "규칙:\n" +
         "- emotion은 반드시 1, 2, 3, 4 중 하나의 정수\n" +
-        "- response는 20자 내외로 짧고 따뜻하게\n" +
-        "- 복합 감정일 경우 가장 강한 감정 하나만 선택";
+        "- response는 30자 내외로 짧고 따뜻하게\n" +
+        "- 복합 감정일 경우 가장 강한 감정 하나만 선택\n" +
+        "- duplicate: 새 입력이 기존 발화 목록과 의미적으로 유사하면 true, 아니면 false";
 
     // OpenAI API 응답 역직렬화용 클래스
     [Serializable] private class OpenAIChatResponse { public OpenAIChoice[] choices; }
     [Serializable] private class OpenAIChoice { public OpenAIMessage message; }
     [Serializable] private class OpenAIMessage { public string content; }
-    [Serializable] private class EmotionAnalysisResult { public int emotion; public string response; }
+    [Serializable] private class EmotionAnalysisResult { public int emotion; public string response; public bool duplicate; }
     [Serializable] private class ClovaSTTResponse { public string text; }
 
     private void Awake()
     {
         LoadApiKeysFromCSV();
+        LoadConversationHistory();
     }
 
     /// <summary>StreamingAssets/config.csv에서 API 키를 읽어온다</summary>
@@ -66,6 +74,40 @@ public class AIService : MonoBehaviour
         if (config.TryGetValue("NaverClientSecret", out var naverSecret)) _naverClientSecret = naverSecret;
 
         if (_showDebugLog) Debug.Log("[AIService] config.csv에서 API 키 로드 완료");
+    }
+
+    /// <summary>StreamingAssets/conversation_log.csv에서 기존 대화 기록을 로드한다</summary>
+    private void LoadConversationHistory()
+    {
+        _conversationLogPath = Path.Combine(Application.streamingAssetsPath, "conversation_log.csv");
+
+        if (!File.Exists(_conversationLogPath))
+        {
+            // 파일이 없으면 헤더만 생성
+            File.WriteAllText(_conversationLogPath, "stt_text,response,emotion\n", Encoding.UTF8);
+            if (_showDebugLog) Debug.Log("[AIService] conversation_log.csv 새로 생성");
+            return;
+        }
+
+        var lines = File.ReadAllLines(_conversationLogPath, Encoding.UTF8);
+        for (int i = 1; i < lines.Length; i++) // 헤더(0번) 스킵
+        {
+            if (string.IsNullOrWhiteSpace(lines[i])) continue;
+            int commaIdx = lines[i].IndexOf(',');
+            if (commaIdx > 0)
+                _conversationHistory.Add(lines[i].Substring(0, commaIdx));
+        }
+
+        if (_showDebugLog) Debug.Log($"[AIService] 기존 대화 기록 {_conversationHistory.Count}건 로드");
+    }
+
+    /// <summary>대화 기록을 CSV 파일에 추가 저장한다</summary>
+    private void SaveConversationEntry(string sttText, string response, int emotion)
+    {
+        _conversationHistory.Add(sttText);
+        string line = $"{sttText},{response},{emotion}\n";
+        File.AppendAllText(_conversationLogPath, line, Encoding.UTF8);
+        if (_showDebugLog) Debug.Log($"[AIService] 대화 기록 저장: {sttText}");
     }
 
     #region 외부 호출 함수
@@ -112,11 +154,13 @@ public class AIService : MonoBehaviour
 
         int emotionCode = 0;             // 감정 코드 (0=중립, 분석 완료 시 1~4로 변경)
         string responseText = null;       // GPT가 생성한 공감 응답 텍스트
+        bool isDuplicate = false;         // 기존 발화와 유사 여부
         string analyzeError = null;       // 감정 분석 오류 메시지 (성공 시 null)
-        yield return StartCoroutine(CallOpenAI(recognizedText, (emotion, resp, error) =>
+        yield return StartCoroutine(CallOpenAI(recognizedText, (emotion, resp, dup, error) =>
         {
             emotionCode = emotion;
             responseText = resp;
+            isDuplicate = dup;
             analyzeError = error;
         }));
 
@@ -130,7 +174,11 @@ public class AIService : MonoBehaviour
 
         response.emotion = emotionCode;
         response.response = responseText;
-        if (_showDebugLog) Debug.Log($"[AIService] 감정: {emotionCode}, 응답: {responseText}");
+        if (_showDebugLog) Debug.Log($"[AIService] 감정: {emotionCode}, 응답: {responseText}, 중복: {isDuplicate}");
+
+        // 유사하지 않은 새 발화만 CSV에 저장
+        if (!isDuplicate)
+            SaveConversationEntry(recognizedText, responseText, emotionCode);
 
         // 3. TTS — 응답을 음성으로 변환
         if (_showDebugLog) Debug.Log("[AIService] TTS 요청 시작");
@@ -202,13 +250,13 @@ public class AIService : MonoBehaviour
         }
     }
 
-    /// <summary>OpenAI GPT-4o-mini — 텍스트에서 감정 분류 + 공감 응답 생성</summary>
-    private IEnumerator CallOpenAI(string userInput, Action<int, string, string> onComplete)
+    /// <summary>OpenAI GPT-4o-mini — 텍스트에서 감정 분류 + 공감 응답 생성 + 중복 판단</summary>
+    private IEnumerator CallOpenAI(string userInput, Action<int, string, bool, string> onComplete)
     {
         string url = "https://api.openai.com/v1/chat/completions";
 
         // JsonUtility는 중첩 구조 직렬화가 불편하므로 직접 JSON 문자열 구성
-        string escapedSystemPrompt = EscapeJson(SYSTEM_PROMPT);
+        string escapedSystemPrompt = EscapeJson(BuildSystemPrompt());
         string escapedUserInput = EscapeJson(userInput);
 
         string jsonBody =
@@ -236,7 +284,7 @@ public class AIService : MonoBehaviour
 
             if (request.result != UnityWebRequest.Result.Success)
             {
-                onComplete?.Invoke(0, null, $"OpenAI API 오류: {request.error}");
+                onComplete?.Invoke(0, null, false, $"OpenAI API 오류: {request.error}");
                 yield break;
             }
 
@@ -247,11 +295,11 @@ public class AIService : MonoBehaviour
 
                 var emotionResult = JsonUtility.FromJson<EmotionAnalysisResult>(content);
                 int emotion = Mathf.Clamp(emotionResult.emotion, 1, 4);
-                onComplete?.Invoke(emotion, emotionResult.response, null);
+                onComplete?.Invoke(emotion, emotionResult.response, emotionResult.duplicate, null);
             }
             catch (Exception e)
             {
-                onComplete?.Invoke(0, null, $"감정 분석 응답 파싱 실패: {e.Message}");
+                onComplete?.Invoke(0, null, false, $"감정 분석 응답 파싱 실패: {e.Message}");
             }
         }
     }
@@ -299,6 +347,23 @@ public class AIService : MonoBehaviour
     #endregion
 
     #region 유틸리티
+
+    /// <summary>기존 대화 목록을 포함한 동적 시스템 프롬프트를 생성한다</summary>
+    private string BuildSystemPrompt()
+    {
+        if (_conversationHistory.Count == 0)
+            return BASE_SYSTEM_PROMPT;
+
+        var sb = new StringBuilder(BASE_SYSTEM_PROMPT);
+        sb.Append("\n\n기존에 접수된 발화 목록:\n[");
+        for (int i = 0; i < _conversationHistory.Count; i++)
+        {
+            if (i > 0) sb.Append(", ");
+            sb.Append('"').Append(_conversationHistory[i]).Append('"');
+        }
+        sb.Append(']');
+        return sb.ToString();
+    }
 
     /// <summary>JSON 문자열 내 특수문자 이스케이프</summary>
     private static string EscapeJson(string str)
